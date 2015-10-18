@@ -61,6 +61,7 @@ if (window.hljs && document.readyState && document.readyState === "complete") {
 </div>
 
 
+<p>please note: a majority of the notes describing each section is either summarized, or copied verbatum from the coursera reproducible research homework assignment.</p>
 <div id="load-and-preprocess-data" class="section level3">
 <h3>Load and preprocess data</h3>
 <pre class="r"><code>#import libraries
@@ -83,6 +84,8 @@ library(dplyr)</code></pre>
 ## 
 ##     intersect, setdiff, setequal, union</code></pre>
 <pre class="r"><code>library(chron)
+library(lattice)
+library(ggplot2)
 
 #load
 rawData &lt;- read.csv(&#39;activity.csv&#39;)
@@ -210,17 +213,12 @@ meanStepsPerInterval[which(meanStepsPerInterval$mean == max(meanStepsPerInterval
 
 2. Using the strategy described below to fill in missing data, create a new dataset that is equal to the original dataset but with the missing data filled in.
 
----------------------------------------------------------------------------------------------------
-* MONO FROM HERE I HAVE TO PROBABLY DO A BETTER JOB. THEN UPLOAD. EVERYTHING UP TO HERE LOOKS GOOD.
----------------------------------------------------------------------------------------------------</code></pre>
-<p>remaining to do: 1) a better version of this step, not just an average of the whole thing; get more granular 2) Then; make all markdown parts (particularly from here to the end, nicer &amp; take out analysis of the impact on imputting from the code, and put it here)</p>
-<p>#Impact is we have some days filled in where before they were blank; both for mean and median, adding the artificial values caused the values to go up and down. clearly my reasoning wasn’t amazing, but to demonstrate the principle, this should suffice.</p>
-<ol start="3" style="list-style-type: decimal">
-<li>Then, make the final graph look more like it does on github</li>
-<li>upload everything to GitHub.</li>
-</ol>
-<p>MAYBE My strategy will be to try a few different approaches, and see how each affects the outcome.</p>
-<pre><code>4. Make a histogram of the total number of steps taken each day and Calculate and report the mean and median total number of steps taken per day. Do these values differ from the estimates from the first part of the assignment? What is the impact of imputing missing data on the estimates of the total daily number of steps?</code></pre>
+Strategy: 
+I chose to simply add the average number of steps accross all times and days to each NA value.
+Although this is probably the worst strategy, it demonstrates the concept of imputting data.
+
+The impact of adding the artificial values is that we some days that were previously left out due to having NA&#39;s are now included; and, for both mean and median, the values have flucutated higher and lower.</code></pre>
+<p>In the histogram, and the new data presented you can see the effect of imputing the artificial data.</p>
 <pre class="r"><code>#1 find number of rows containing NAs in raw data
 sum(is.na(rawData$steps)) </code></pre>
 <pre><code>## [1] 2304</code></pre>
@@ -230,15 +228,14 @@ sum(is.na(rawData$steps)) </code></pre>
 #first copy rawData to new data frame to manipulate
 modData &lt;- rawData
 
-############################################################
+#imputting data steps:
 #get vector of NA&#39;s
 #where value = NA, enter &quot;mean&quot; from meanStepsPerInterval at that interval 
-#really poor reasoning, but essentially fill in with the average number of steps
+#fill in with the average number of steps
 modData$steps[which(is.na(rawData$steps))] &lt;- mean(modData$steps, na.rm = TRUE)
 
 stepsPerDayMod &lt;-ddply(modData, .(date), summarize, sum=sum(steps))
 
-############################################################
 par(mfrow=c(1,2))
 
 #new graph with artificial data added
@@ -326,12 +323,10 @@ meanMedianDailyStepsMod</code></pre>
 ## 60 2012-11-29 24.4687500 568.0000
 ## 61 2012-11-30 37.3825996  37.3826</code></pre>
 <pre class="r"><code>#unmodified:
-#meanMedianDailySteps
-#Impact is we have some days filled in where before they were blank; both for mean and median, adding the artificial values caused the values to go up and down. clearly my reasoning wasn&#39;t amazing, but to demonstrate the principle, this should suffice.</code></pre>
+#meanMedianDailySteps</code></pre>
 </div>
 <div id="are-there-differences-in-activity-patterns-between-weekdays-and-weekends" class="section level3">
 <h3>Are there differences in activity patterns between weekdays and weekends?</h3>
-<p>For this part the weekdays() function may be of some help here. Use the dataset with the filled-in missing values for this part.</p>
 <pre><code>Create a new factor variable in the dataset with two levels - &quot;weekday&quot; and &quot;weekend&quot; indicating whether a given date is a weekday or weekend day.
 
 Make a panel plot containing a time series plot (i.e. type = &quot;l&quot;) of the 5-minute interval (x-axis) and the average number of steps taken, averaged across all weekday days or weekend days (y-axis). See the README file in the GitHub repository to see an example of what this plot should look like using simulated data.</code></pre>
@@ -345,27 +340,30 @@ modData2$weekend &lt;- FALSE
 modData2$weekend[which(is.weekend(modData$date))] &lt;- TRUE
 
 #create 2 new dataframes
-
 weekEnd &lt;- modData2[modData2$weekend == TRUE, ]
 
 weekDay &lt;- modData2[modData2$weekend == FALSE, ]
 
+#find mean of each day/weekday or weekend
 weekEndMeanSteps &lt;- ddply(weekEnd, .(interval), summarize, mean=mean(steps))
-
 weekDayMeanSteps &lt;- ddply(weekDay, .(interval), summarize, mean=mean(steps))
 
-par(mfrow=c(2,1))
+#add factor variable
+weekEndMeanSteps$day &lt;- &quot;weekend&quot;
+weekDayMeanSteps$day &lt;- &quot;weekday&quot;
 
-#make time series plot 
+#merge to 1 new dataframe
+mergedDF &lt;- rbind(weekEndMeanSteps, weekDayMeanSteps)
 
-plot(weekEndMeanSteps$interval, weekEndMeanSteps$mean, type=&quot;l&quot;, main=&quot;Weekend&quot;, ylab=&quot;# of steps&quot;, xlab=&quot;time (in 5 min intervals)&quot;)
+#plot graph
+p &lt;- ggplot(mergedDF,aes(x=interval, y=mean)) 
+p &lt;- p + geom_line() + facet_grid(day ~ .) + theme_bw()
+p &lt;- p + theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank())
 
-plot(weekDayMeanSteps$interval, weekDayMeanSteps$mean, type=&quot;l&quot;, main=&quot;Weekday&quot;, ylab=&quot;# of steps&quot;, xlab=&quot;time (in 5 min intervals)&quot;)</code></pre>
+p</code></pre>
 <div class="figure">
 <img src="PA1_template_files/figure-html/unnamed-chunk-5-1.png" />
 </div>
-<pre class="r"><code>par(mfrow=c(1,1))</code></pre>
-<p>useful: str() summary() class() names() length() head() tail() dim()</p>
 </div>
 
 

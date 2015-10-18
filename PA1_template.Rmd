@@ -9,6 +9,8 @@ output:
     self_contained: no
 ---
 
+please note: a majority of the notes describing each section is either summarized, or copied verbatum from the coursera reproducible research homework assignment. 
+
 ###Load and preprocess data
 
 ```{r, echo=TRUE}
@@ -17,6 +19,8 @@ output:
 library(plyr)
 library(dplyr)
 library(chron)
+library(lattice)
+library(ggplot2)
 
 #load
 rawData <- read.csv('activity.csv')
@@ -95,25 +99,13 @@ meanStepsPerInterval[which(meanStepsPerInterval$mean == max(meanStepsPerInterval
 
     2. Using the strategy described below to fill in missing data, create a new dataset that is equal to the original dataset but with the missing data filled in.
     
-    ---------------------------------------------------------------------------------------------------
-    * MONO FROM HERE I HAVE TO PROBABLY DO A BETTER JOB. THEN UPLOAD. EVERYTHING UP TO HERE LOOKS GOOD.
-    ---------------------------------------------------------------------------------------------------
-   
-   remaining to do: 
-   1) a better version of this step, not just an average of the whole thing; get more granular
-   2) Then; make all markdown parts (particularly from here to the end, nicer & take out analysis of the impact on imputting from the code, and put it here)
-   
-   #Impact is we have some days filled in where before they were blank; both for mean and median, adding the artificial values caused the values to go up and down. clearly my reasoning wasn't amazing, but to demonstrate the principle, this should suffice.
-   
-   3) Then, make the final graph look more like it does on github
-   4) upload everything to GitHub.
-   
-   MAYBE
-    My strategy will be to try a few different approaches, and see how each affects the outcome. 
+    Strategy: 
+    I chose to simply add the average number of steps accross all times and days to each NA value.
+    Although this is probably the worst strategy, it demonstrates the concept of imputting data.
     
+    The impact of adding the artificial values is that we some days that were previously left out due to having NA's are now included; and, for both mean and median, the values have flucutated higher and lower.
 
-    4. Make a histogram of the total number of steps taken each day and Calculate and report the mean and median total number of steps taken per day. Do these values differ from the estimates from the first part of the assignment? What is the impact of imputing missing data on the estimates of the total daily number of steps?
-
+   In the histogram, and the new data presented you can see the effect of imputing the artificial data.
 
 ```{r, echo=TRUE}
 #1 find number of rows containing NAs in raw data
@@ -124,15 +116,14 @@ sum(is.na(rawData$steps))
 #first copy rawData to new data frame to manipulate
 modData <- rawData
 
-############################################################
+#imputting data steps:
 #get vector of NA's
 #where value = NA, enter "mean" from meanStepsPerInterval at that interval 
-#really poor reasoning, but essentially fill in with the average number of steps
+#fill in with the average number of steps
 modData$steps[which(is.na(rawData$steps))] <- mean(modData$steps, na.rm = TRUE)
 
 stepsPerDayMod <-ddply(modData, .(date), summarize, sum=sum(steps))
 
-############################################################
 par(mfrow=c(1,2))
 
 #new graph with artificial data added
@@ -158,14 +149,11 @@ meanMedianDailyStepsMod
 
 #unmodified:
 #meanMedianDailySteps
-#Impact is we have some days filled in where before they were blank; both for mean and median, adding the artificial values caused the values to go up and down. clearly my reasoning wasn't amazing, but to demonstrate the principle, this should suffice.
 
 ```
 
 
 ###Are there differences in activity patterns between weekdays and weekends?
-
-For this part the weekdays() function may be of some help here. Use the dataset with the filled-in missing values for this part.
 
     Create a new factor variable in the dataset with two levels - "weekday" and "weekend" indicating whether a given date is a weekday or weekend day.
 
@@ -182,35 +170,25 @@ modData2$weekend <- FALSE
 modData2$weekend[which(is.weekend(modData$date))] <- TRUE
 
 #create 2 new dataframes
-
 weekEnd <- modData2[modData2$weekend == TRUE, ]
 
 weekDay <- modData2[modData2$weekend == FALSE, ]
 
+#find mean of each day/weekday or weekend
 weekEndMeanSteps <- ddply(weekEnd, .(interval), summarize, mean=mean(steps))
-
 weekDayMeanSteps <- ddply(weekDay, .(interval), summarize, mean=mean(steps))
 
-par(mfrow=c(2,1))
+#add factor variable
+weekEndMeanSteps$day <- "weekend"
+weekDayMeanSteps$day <- "weekday"
 
-#make time series plot 
+#merge to 1 new dataframe
+mergedDF <- rbind(weekEndMeanSteps, weekDayMeanSteps)
 
-plot(weekEndMeanSteps$interval, weekEndMeanSteps$mean, type="l", main="Weekend", ylab="# of steps", xlab="time (in 5 min intervals)")
+#plot graph
+p <- ggplot(mergedDF,aes(x=interval, y=mean)) 
+p <- p + geom_line() + facet_grid(day ~ .) + theme_bw()
+p <- p + theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank())
 
-plot(weekDayMeanSteps$interval, weekDayMeanSteps$mean, type="l", main="Weekday", ylab="# of steps", xlab="time (in 5 min intervals)")
-
-par(mfrow=c(1,1))
-
+p
 ```
-
-
-
-useful:
-str()
-summary()
-class()
-names()
-length()
-head()
-tail()
-dim()
